@@ -8,18 +8,26 @@ import {
   Delete,
   Query,
   ValidationPipe,
+  HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('pets')
 export class PetsController {
   constructor(private readonly petsService: PetsService) {}
 
   @Post()
-  create(@Body(ValidationPipe) createPetDto: CreatePetDto) {
-    return this.petsService.create(createPetDto);
+  @UseGuards(JwtAuthGuard)
+  create(
+    @Body(ValidationPipe) createPetDto: CreatePetDto,
+    @CurrentUser() user: any
+  ) {
+    return this.petsService.create(createPetDto, user.userId);
   }
 
   @Get()
@@ -52,6 +60,12 @@ export class PetsController {
     return this.petsService.findAvailable(filters);
   }
 
+  @Get('my-pets')
+  @UseGuards(JwtAuthGuard)
+  findMyPets(@CurrentUser() user: any) {
+    return this.petsService.findByOwner(user.userId);
+  }
+
   @Get('owner/:ownerId')
   findByOwner(@Param('ownerId') ownerId: string) {
     return this.petsService.findByOwner(ownerId);
@@ -73,6 +87,7 @@ export class PetsController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   remove(@Param('id') id: string) {
     return this.petsService.remove(id);
   }

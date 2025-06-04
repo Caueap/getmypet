@@ -7,18 +7,25 @@ import {
   Param,
   Delete,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { AdoptionsService } from './adoptions.service';
 import { CreateAdoptionDto } from './dto/create-adoption.dto';
 import { UpdateAdoptionDto } from './dto/update-adoption.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('adoptions')
 export class AdoptionsController {
   constructor(private readonly adoptionsService: AdoptionsService) {}
 
   @Post()
-  create(@Body(ValidationPipe) createAdoptionDto: CreateAdoptionDto) {
-    return this.adoptionsService.create(createAdoptionDto);
+  @UseGuards(JwtAuthGuard)
+  create(
+    @Body(ValidationPipe) createAdoptionDto: CreateAdoptionDto,
+    @CurrentUser() user: any
+  ) {
+    return this.adoptionsService.create(createAdoptionDto, user.userId);
   }
 
   @Get()
@@ -29,6 +36,18 @@ export class AdoptionsController {
   @Get('statistics')
   getStatistics() {
     return this.adoptionsService.getStatistics();
+  }
+
+  @Get('my-applications')
+  @UseGuards(JwtAuthGuard)
+  findMyApplications(@CurrentUser() user: any) {
+    return this.adoptionsService.findByApplicant(user.userId);
+  }
+
+  @Get('my-pets-applications')
+  @UseGuards(JwtAuthGuard)
+  findMyPetsApplications(@CurrentUser() user: any) {
+    return this.adoptionsService.findByOwner(user.userId);
   }
 
   @Get('applicant/:applicantId')
@@ -54,6 +73,11 @@ export class AdoptionsController {
   @Patch(':id')
   update(@Param('id') id: string, @Body(ValidationPipe) updateAdoptionDto: UpdateAdoptionDto) {
     return this.adoptionsService.update(id, updateAdoptionDto);
+  }
+
+  @Patch(':id/complete')
+  completeAdoption(@Param('id') id: string) {
+    return this.adoptionsService.completeAdoption(id);
   }
 
   @Delete(':id')

@@ -7,10 +7,6 @@ export class CreateAdoptionDto {
 
   @IsNotEmpty()
   @IsString()
-  applicantId: string;
-
-  @IsNotEmpty()
-  @IsString()
   ownerId: string;
 
   @IsNotEmpty()

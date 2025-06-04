@@ -26,11 +26,20 @@ export class UsersService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.userModel.find({ isActive: true }).select('-password').exec();
+    return this.userModel
+      .find({ isActive: true })
+      .select('-password')
+      .populate('pets', 'name species breed size age gender description status vaccinations isNeutered location')
+      .exec();
   }
 
   async findOne(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).select('-password').exec();
+    const user = await this.userModel
+      .findById(id)
+      .select('-password')
+      .populate('pets', 'name species breed size age gender description status vaccinations isNeutered location')
+      .exec();
+    
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -51,6 +60,7 @@ export class UsersService {
     const updatedUser = await this.userModel
       .findByIdAndUpdate(id, updateData, { new: true })
       .select('-password')
+      .populate('pets', 'name species breed size age gender description status vaccinations isNeutered location')
       .exec();
 
     if (!updatedUser) {
@@ -61,6 +71,15 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
+    const user = await this.userModel.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.pets && user.pets.length > 0) {
+      throw new ConflictException('Cannot delete user who has registered pets. Please remove or transfer all pets first.');
+    }
+
     const result = await this.userModel.findByIdAndUpdate(
       id,
       { isActive: false },

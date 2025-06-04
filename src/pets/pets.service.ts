@@ -2,19 +2,33 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Pet, PetDocument } from './pet.schema';
+import { User, UserDocument } from '../users/user.schema';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 
 @Injectable()
 export class PetsService {
-  constructor(@InjectModel(Pet.name) private petModel: Model<PetDocument>) {}
+  constructor(
+    @InjectModel(Pet.name) private petModel: Model<PetDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>
+  ) {}
 
-  async create(createPetDto: CreatePetDto): Promise<Pet> {
+  async create(createPetDto: CreatePetDto, ownerId: string): Promise<Pet> {
     const createdPet = new this.petModel({
       ...createPetDto,
+      ownerId,
       status: 'available',
     });
-    return createdPet.save();
+    
+    const savedPet = await createdPet.save();
+    
+    
+    await this.userModel.findByIdAndUpdate(
+      ownerId,
+      { $push: { pets: savedPet._id } }
+    );
+    
+    return savedPet;
   }
 
   async findAll(filters?: any): Promise<Pet[]> {
@@ -70,6 +84,11 @@ export class PetsService {
   }
 
   async remove(id: string): Promise<void> {
+    const pet = await this.petModel.findById(id);
+    if (!pet) {
+      throw new NotFoundException('Pet not found');
+    }
+
     const result = await this.petModel.findByIdAndUpdate(
       id,
       { isActive: false },
@@ -79,6 +98,11 @@ export class PetsService {
     if (!result) {
       throw new NotFoundException('Pet not found');
     }
+
+    await this.userModel.findByIdAndUpdate(
+      pet.ownerId,
+      { $pull: { pets: id } }
+    );
   }
 
   async adoptPet(petId: string, adopterId: string): Promise<Pet> {

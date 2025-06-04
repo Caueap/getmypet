@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type UserDocument = User & Document;
 
@@ -14,20 +14,23 @@ export class User {
   @Prop({ required: true })
   password: string;
 
-  @Prop()
-  phone?: string;
+  @Prop({ required: true })
+  phone: string;
 
-  @Prop()
-  address?: string;
+  @Prop({ required: true })
+  address: string;
 
-  @Prop()
-  city?: string;
+  @Prop({ required: true })
+  city: string;
 
-  @Prop()
-  state?: string;
+  @Prop({ required: true })
+  state: string;
 
-  @Prop()
-  zipCode?: string;
+  @Prop({ required: true })
+  zipCode: string;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Pet' }], default: [] })
+  pets: Types.ObjectId[];
 
   @Prop({ default: 'user' })
   role: string;

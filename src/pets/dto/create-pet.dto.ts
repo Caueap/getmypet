@@ -44,6 +44,10 @@ export class CreatePetDto {
   @IsString({ each: true })
   images?: string[];
 
+  @IsNotEmpty()
+  @IsEnum(['available', 'adopted', 'pending'])
+  status: string;
+
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -56,8 +60,4 @@ export class CreatePetDto {
   @IsOptional()
   @IsString()
   location?: string;
-
-  @IsNotEmpty()
-  @IsString()
-  ownerId: string;
 } 
