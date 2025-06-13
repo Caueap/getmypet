@@ -71,15 +71,25 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
+    console.log(`UsersService - Starting remove for user ID: ${id}`);
+    
+    console.log(`UsersService - Finding user by ID...`);
     const user = await this.userModel.findById(id);
+    
     if (!user) {
+      console.log(`UsersService - User not found`);
       throw new NotFoundException('User not found');
     }
+    
+    console.log(`UsersService - Found user: ${user.name}, pets array length: ${user.pets?.length || 0}`);
+    console.log(`UsersService - User pets:`, user.pets);
 
     if (user.pets && user.pets.length > 0) {
+      console.log(`UsersService - User has pets, throwing ConflictException`);
       throw new ConflictException('Cannot delete user who has registered pets. Please remove or transfer all pets first.');
     }
 
+    console.log(`UsersService - User has no pets, proceeding with soft delete...`);
     const result = await this.userModel.findByIdAndUpdate(
       id,
       { isActive: false },
@@ -87,7 +97,10 @@ export class UsersService {
     );
 
     if (!result) {
+      console.log(`UsersService - Failed to update user to inactive`);
       throw new NotFoundException('User not found');
     }
+    
+    console.log(`UsersService - User successfully marked as inactive`);
   }
 } 

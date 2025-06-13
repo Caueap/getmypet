@@ -89,7 +89,18 @@ export class AdoptionsService {
       .exec();
   }
 
-  async update(id: string, updateAdoptionDto: UpdateAdoptionDto): Promise<Adoption> {
+  async update(id: string, updateAdoptionDto: UpdateAdoptionDto, userId?: string): Promise<Adoption> {
+    if (userId) {
+      const adoption = await this.adoptionModel.findById(id);
+      if (!adoption) {
+        throw new NotFoundException('Adoption application not found');
+      }
+      
+      if (adoption.ownerId.toString() !== userId) {
+        throw new ConflictException('Only the pet owner can update adoption status');
+      }
+    }
+
     const updateData: any = { ...updateAdoptionDto };
     let currentAdoption: Adoption | null = null;
 
@@ -136,20 +147,23 @@ export class AdoptionsService {
   }
 
   private async transferPetOwnership(petId: string, oldOwnerId: string, newOwnerId: string): Promise<void> {
-    await this.petModel.findByIdAndUpdate(petId, {
-      ownerId: newOwnerId,
+    const pet = await this.petModel.findById(petId);
+    if (!pet) {
+      throw new NotFoundException('Pet not found');
+    }
+
+    const updateData: any = {
       adoptedBy: newOwnerId,
       adoptedAt: new Date(),
       status: 'adopted'
-    });
+    };
 
-    await this.userModel.findByIdAndUpdate(oldOwnerId, {
-      $pull: { pets: petId }
-    });
+    if (!pet.originalOwnerId) {
+      updateData.originalOwnerId = pet.ownerId;
+    }
 
-    await this.userModel.findByIdAndUpdate(newOwnerId, {
-      $push: { pets: petId }
-    });
+    await this.petModel.findByIdAndUpdate(petId, updateData);
+
   }
 
   async completeAdoption(adoptionId: string): Promise<Adoption> {

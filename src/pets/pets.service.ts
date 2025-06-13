@@ -17,6 +17,7 @@ export class PetsService {
     const createdPet = new this.petModel({
       ...createPetDto,
       ownerId,
+      originalOwnerId: ownerId,
       status: 'available',
     });
     
@@ -35,16 +36,16 @@ export class PetsService {
     const query = { isActive: true, ...filters };
     return this.petModel
       .find(query)
-      .populate('ownerId', 'name email')
-      .populate('adoptedBy', 'name email')
+      .populate('ownerId', 'name email avatar phone address city state')
+      .populate('adoptedBy', 'name email avatar phone address city state')
       .exec();
   }
 
   async findOne(id: string): Promise<Pet> {
     const pet = await this.petModel
       .findById(id)
-      .populate('ownerId', 'name email')
-      .populate('adoptedBy', 'name email')
+      .populate('ownerId', 'name email avatar phone address city state')
+      .populate('adoptedBy', 'name email avatar phone address city state')
       .exec();
 
     if (!pet) {
@@ -55,9 +56,15 @@ export class PetsService {
 
   async findByOwner(ownerId: string): Promise<Pet[]> {
     return this.petModel
-      .find({ ownerId, isActive: true })
-      .populate('ownerId', 'name email')
-      .populate('adoptedBy', 'name email')
+      .find({ 
+        $or: [
+          { ownerId, isActive: true },
+          { originalOwnerId: ownerId, isActive: true }
+        ]
+      })
+      .populate('ownerId', 'name email avatar phone address city state')
+      .populate('originalOwnerId', 'name email avatar phone address city state')
+      .populate('adoptedBy', 'name email avatar phone address city state')
       .exec();
   }
 
@@ -65,15 +72,15 @@ export class PetsService {
     const query = { status: 'available', isActive: true, ...filters };
     return this.petModel
       .find(query)
-      .populate('ownerId', 'name email')
+      .populate('ownerId', 'name email avatar phone address city state')
       .exec();
   }
 
   async update(id: string, updatePetDto: UpdatePetDto): Promise<Pet> {
     const updatedPet = await this.petModel
       .findByIdAndUpdate(id, updatePetDto, { new: true })
-      .populate('ownerId', 'name email')
-      .populate('adoptedBy', 'name email')
+      .populate('ownerId', 'name email avatar phone address city state')
+      .populate('adoptedBy', 'name email avatar phone address city state')
       .exec();
 
     if (!updatedPet) {
@@ -116,8 +123,9 @@ export class PetsService {
         },
         { new: true }
       )
-      .populate('ownerId', 'name email')
-      .populate('adoptedBy', 'name email')
+      .populate('ownerId', 'name email avatar phone address city state')
+      .populate('originalOwnerId', 'name email avatar phone address city state')
+      .populate('adoptedBy', 'name email avatar phone address city state')
       .exec();
 
     if (!updatedPet) {
@@ -125,5 +133,19 @@ export class PetsService {
     }
 
     return updatedPet;
+  }
+
+  async migrateOriginalOwner(): Promise<void> {
+    const petsWithoutOriginalOwner = await this.petModel.find({ 
+      originalOwnerId: { $exists: false } 
+    });
+
+    for (const pet of petsWithoutOriginalOwner) {
+      await this.petModel.findByIdAndUpdate(pet._id, {
+        originalOwnerId: pet.ownerId
+      });
+    }
+
+    console.log(`Migrated ${petsWithoutOriginalOwner.length} pets to have originalOwnerId`);
   }
 } 

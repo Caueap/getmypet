@@ -29,6 +29,9 @@ export class User {
   @Prop({ required: true })
   zipCode: string;
 
+  @Prop()
+  avatar: string;
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Pet' }], default: [] })
   pets: Types.ObjectId[];
 

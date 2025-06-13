@@ -71,8 +71,13 @@ export class AdoptionsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body(ValidationPipe) updateAdoptionDto: UpdateAdoptionDto) {
-    return this.adoptionsService.update(id, updateAdoptionDto);
+  @UseGuards(JwtAuthGuard)
+  update(
+    @Param('id') id: string, 
+    @Body(ValidationPipe) updateAdoptionDto: UpdateAdoptionDto,
+    @CurrentUser() user: any
+  ) {
+    return this.adoptionsService.update(id, updateAdoptionDto, user.userId);
   }
 
   @Patch(':id/complete')

@@ -8,7 +8,7 @@ export class Pet {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, enum: ['dog', 'cat'] })
+  @Prop({ required: true, enum: ['dog', 'cat', 'other'] })
   species: string;
 
   @Prop()
@@ -43,6 +43,9 @@ export class Pet {
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   ownerId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  originalOwnerId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   adoptedBy?: Types.ObjectId;
